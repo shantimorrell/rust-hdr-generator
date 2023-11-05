@@ -1,44 +1,81 @@
-fn print_args (args: &Vec<String>) {
-    for i in args {
-        println!("{:}", i);
-    }
-}
+use std::process::Command;
 
-
+// fn print_args (args: &Vec<String>) {
+//     for i in args {
+//         println!("{:}", i);
+//     }
+// }
 
 
 
 fn main () {
+    // Gather command line args
     let args: Vec<_> = std::env::args().collect();
 
+    // Path to hdrgen executable
+    const HDRGEN_PATH: &str = "../../hdrgen_macosx/bin/hdrgen";
+    
+    // Used for printing some debug info
+    const DEBUG: bool = false;
+
+
+    //let path_to_input_files = "../../HDRICalibrationTool/examples/inputs/input_images/";
+    //let path_to_response_function = "../../HDRICalibrationTool/examples/inputs/parameters/response_function_files/";
+
+    // Path to write output HDR image
+    let output_path = "test.hdr";
+
+    // Check there's command line args
     if args.len() > 1 {
-        println!("Some args were entered!");
+        // Input files are args at indices [1, args.len() - 1)
+        let input_files = &args[1..(args.len() - 1)];
 
-        println!("All args: ");
-        print_args(&args);
+        // Response function arg is last command line arg
+        let response_function_path = &args[args.len() - 1];
 
+        if DEBUG {
+            println!("\nInput files: \n{:?}", input_files);
+            println!("\nResponse function path: \n{:?}", response_function_path);
+        }
 
-        println!("Args 1 through len - 1: ");
-        print_args(&args[1..(args.len() - 1)].to_vec());
+        // Create a new command for hdrgen
+        let mut command = Command::new(HDRGEN_PATH);
 
-        let input_files = &args[1..(args.len() - 1)];        //.to_vec();
-        println!("Input files: {:?}", input_files);
+        // Add input LDR images as args
+        for input_file in input_files {
+            command.arg(format!("{}", input_file));
+        }
 
+        // Add output path for HDR image
+        command.arg("-o");
+        command.arg(format!("{}", output_path));
 
-        let output_path = &args[args.len() - 1];
-        println!("Output path: {:?}", output_path);
+        // Add camera response function
+        command.arg("-r");
+        command.arg(format!("{}", response_function_path));
 
+        // Add remaining flags for hdrgen step
+        command.arg("-a");
+        command.arg("-e");
+        command.arg("-f");
+        command.arg("-g");
+
+        // Run the command
+        let status = command.status().unwrap();
         
-
-
-
+        if DEBUG {
+            println!("\nCommand exit status: {:?}\n", status);
+        }
+        
+        // Check if hdrgen command was successful
+        if status.success() {
+            println!("Will eventually return output path: {}", output_path);
+        }
+        else { 
+            println!("Error, non-zero exit status. hdrgen command failed.");
+        }
     }
     else {
-        println!("No args were entered.");
+        println!("Error. No args were entered.");
     }
-
-
-
-
-    println!("\nThis will eventually be the output path...");
 }
